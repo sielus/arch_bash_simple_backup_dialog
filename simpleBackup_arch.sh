@@ -1,5 +1,7 @@
 #Script tested on Arch linux
 
+
+
 function alertbox () {
     whiptail --title "$1" --msgbox "$2! Click OK to continue!" 8 78
 }
@@ -71,8 +73,19 @@ function checkUsb () {
                 fi
             done
         #echo  "${newArr[$val - 1]}"
-        selectBackuplocation 'Enter your backup location on your USB device' "${newArr[$val - 1]}"/backup/ 60
-        rm -r ".data.txt" > /dev/null 2>&1
+
+
+
+        if [ -z "$val" ]
+            then
+                mainMeno
+                rm -r ".data.txt" > /dev/null 2>&1
+            else
+                selectBackuplocation 'Enter your backup location on your USB device' "${newArr[$val - 1]}"/backup/ 60
+                rm -r ".data.txt" > /dev/null 2>&1
+        fi
+
+       # selectBackuplocation 'Enter your backup location on your USB device' "${newArr[$val - 1]}"/backup/ 60
     else
         alertbox "USB devices error" "No USB devices"
         rm -r ".data.txt" > /dev/null 2>&1
@@ -89,7 +102,7 @@ backupType (){
     if [[ "$1" = "server" ]]; then
         selectBackuplocation 'Enter your server adress user@adres:/location' 'sielus@192.168.1.16:/mnt/c/Users/sielus/Desktop/testBackup/' 80
     elif [[ "$1" = "local" ]]; then
-        selectBackuplocation 'Enter your backup location on your local-PC' '/home/sielus/testBackup/' 60
+        selectBackuplocation 'Enter your backup location on your local-PC' '/mnt/c/Users/sielus/Desktop/' 60
     elif [[ "$1" = "usb" ]]; then
         checkUsb 
     fi
@@ -102,18 +115,22 @@ function selectDirectToBackUp () {
     BUTTON=$?;
     if [ "$BUTTON" == 0 ];
     then
-             rsync -a --progress $(<$OUTPUT) $1 > rsyncLog.txt
+             clear
+             rsync -av --progress $(<$OUTPUT) $1 
              if [ "$?" -eq "0" ]
                 then
-                    echo rsync -a --progress $(<$OUTPUT) $1 >> rsyncLog.txt
+                    echo rsync -av --progress $(<$OUTPUT) $1 > rsyncLog.txt
+                    path=$1
+                    path="${path}/*"
+                    diff -qr $(<$OUTPUT) $path 
                     alertbox "Rsync" "Backup complete"
                     rm -r ".temp.txt" > /dev/null 2>&1
-                    clear
+                    #clear
                 else
-                    echo rsync -a --progress $(<$OUTPUT) $1 >> rsyncLog.txt
+                    echo rsync -av --progress $(<$OUTPUT) $1 > rsyncLog.txt
                     alertbox "Error while running rsync" "Error code: "$?
                     rm -r ".temp.txt" > /dev/null 2>&1
-                    clear
+                    #clear
                     mainMeno
                 fi
              
@@ -129,10 +146,12 @@ function selectDirectToBackUp () {
 }
 
 function mainMeno() {
-    cmd=(dialog --keep-tite --backtitle "Sielanczyk_Jakub" --menu "Select options:" 10 30 5)
+    cmd=(dialog --keep-tite --backtitle "Sielanczyk_Jakub" --menu "Select options:" 12 30 5)
     options=(1 "Backup on server"
             2 "Backup on local disk"
-            3 "Backup on usb")
+            3 "Backup on usb"
+            4 "Restore backup"
+            5 "Help")
 
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 
@@ -150,6 +169,14 @@ function mainMeno() {
             3)
                 backupType 'usb'
                 ;;
+            
+            4)
+                echo 'restore'
+                ;;
+                           
+            5)
+                echo 'help'
+                ;;
 
         esac
     done
@@ -160,7 +187,31 @@ function checkRoot() {
         then alertbox "Permisions alert!" "Please run as root"
         exit
     else
+        checkInstaller
+    fi
+}
+
+function checkInstaller() {
+    apt=`command -v apt-get`
+    pacman=`command -v pacman`
+
+    if [ -n "$apt" ]; then
+        if ! which dialog > /dev/null; 
+            then
+                read -p "Install package Dialog? (y/n): " request
+                    if [ "$request" == 'y' ]
+                        then
+                            apt-get install dialog --yes
+                    fi
+        fi
         mainMeno
+    elif [ -n "$pacman" ]; 
+        then
+            pacman -Syy dialog
+            mainMeno
+    else
+        echo "Err: no path to apt-get or pacman. Make sure you have installed dialog" >&2;
+        exit 1;
     fi
 }
 
