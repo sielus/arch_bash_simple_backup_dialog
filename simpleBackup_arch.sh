@@ -153,9 +153,9 @@ function checkUsb () {
 
 backupType (){ 
     if [[ "$1" = "server" ]]; then
-        selectBackuplocation 'Enter your server adress user@adres:/location' 'sielus@192.168.1.16:/mnt/c/Users/sielus/Desktop/testBackup/' 80
+        selectBackuplocation 'Enter your server adress user@adres:/location' 'user@192.168.1.16:/path/backup/' 80
     elif [[ "$1" = "local" ]]; then
-        selectBackuplocation 'Enter your backup location on your local-PC' '/mnt/c/Users/sielus/Desktop/' 60
+        selectBackuplocation 'Enter your backup location on your local-PC' '/home/'$USER'/backup/' 60
     elif [[ "$1" = "usb" ]]; then
         checkUsb 
     fi
@@ -164,7 +164,7 @@ backupType (){
 function selectDirectToBackUp () { 
     OUTPUT=".temp.txt"
     >$OUTPUT;
-    dialog --clear --title "What you want to backup?" --checklist "Select:" 10 40 3 /mnt/c/Users/sielus/test1 "" "off" /mnt/c/Users/sielus/test2 "" "off" /mnt/c/Users/sielus/test3  "" "off" 2> $OUTPUT
+    dialog --clear --title "What you want to backup?" --checklist "Select:" 10 40 3 /home/$USER/test1 "" "off" /home/$USER/test2 "" "off" /home/$USER/test3 "" "off" 2> $OUTPUT
     BUTTON=$?;
     if [ "$BUTTON" == 0 ];
     then
