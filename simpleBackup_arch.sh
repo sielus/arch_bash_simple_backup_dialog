@@ -26,6 +26,59 @@ function selectBackuplocation () {
     fi
 }
 
+function selectRestoreBackuplocation () { 
+    OUTPUT=".temp.txt"
+    >$OUTPUT;
+    dialog --clear --title "Choose path to save restored files" --inputbox "Default path: /home/$USER/restoredFromBackup" 10 $3 "$2" 2> $OUTPUT
+
+    BUTTON=$?;
+    if [ "$BUTTON" == 0 ];
+        then
+            selectRestoreLocation $(<$OUTPUT)
+            rm -r ".temp.txt" > /dev/null 2>&1
+    elif [ "BUTTON" == 1 ];
+        then
+            rm -r ".temp.txt" > /dev/null 2>&1
+            mainMeno 
+    else
+        rm -r ".temp.txt" > /dev/null 2>&1
+        mainMeno
+    fi
+}
+
+function selectRestoreLocation () { 
+    OUTPUT=".temp.txt"
+    >$OUTPUT;
+    dialog --clear --title "Choose path to backup" --inputbox "Backup whill be restored to:$1" 10 $3 "$2" 2> $OUTPUT
+
+    BUTTON=$?;
+    if [ "$BUTTON" == 0 ];
+        then
+            echo rsync -av --progress $(<$OUTPUT) $1 > restoreLog.txt
+            rsync -av --progress $(<$OUTPUT) $1 
+            rsync -av --progress $(<$OUTPUT) $1 >> restoreLog.txt
+            
+
+            path=$1 
+           #path="${path}/*"
+            echo "Verifying the integrity of a files"
+
+            diff -qr $(<$OUTPUT) $path 
+            diff -qr $(<$OUTPUT) $path >> restoreLog.txt  
+            echo "Restoring complete"
+
+
+            rm -r ".temp.txt" > /dev/null 2>&1
+    elif [ "BUTTON" == 1 ];
+        then
+            rm -r ".temp.txt" > /dev/null 2>&1
+            mainMeno 
+    else
+        rm -r ".temp.txt" > /dev/null 2>&1
+        mainMeno
+    fi
+}
+
 function checkUsb () {
     rm -r ".data.txt" > /dev/null 2>&1
 
@@ -120,10 +173,19 @@ function selectDirectToBackUp () {
              if [ "$?" -eq "0" ]
                 then
                     echo rsync -av --progress $(<$OUTPUT) $1 > rsyncLog.txt
-                    path=$1
-                    path="${path}/*"
-                    diff -qr $(<$OUTPUT) $path 
+
+                    echo "Verifying the integrity of a files"
+                    echo rsync --dry-run --checksum --itemize-changes $(<$OUTPUT) $1 > rsyncLog.txt
+                    rsync --dry-run --checksum --itemize-changes $(<$OUTPUT) $1 
+
                     alertbox "Rsync" "Backup complete"
+                    echo "Backup complete"
+                    # for file in $1*; do
+                    #     diff "$file" "$(<$OUTPUT)"
+                    #     echo $file
+                    # done
+                    #echo diff -qr $(<$OUTPUT) $path 
+
                     rm -r ".temp.txt" > /dev/null 2>&1
                     #clear
                 else
@@ -143,6 +205,20 @@ function selectDirectToBackUp () {
 
     fi
     
+}
+
+
+function showHelp() {
+    dialog --backtitle "Script tested and used on Arch linux" \
+    --title "Help" \
+    --msgbox 'Author : Jakub Sielanczyk \nIf you want backup on server chose option "Backup on server" and write correct path with  your server ip addres on start. Something like '$USER'@xxx.xxx.xxx.xxx:/path. On next step select some files to backup.
+    \nIf you want backup on local drive or USB device, chose correct option. Option with USB worked fine on Arch Linux... but on debian or ubuntu 5:5' 15 70
+    BUTTON=$?;
+    if [ "$BUTTON" == 0 ];
+        then
+            clear
+            mainMeno
+    fi
 }
 
 function mainMeno() {
@@ -171,11 +247,11 @@ function mainMeno() {
                 ;;
             
             4)
-                echo 'restore'
+                selectRestoreBackuplocation 
                 ;;
                            
             5)
-                echo 'help'
+                showHelp
                 ;;
 
         esac
